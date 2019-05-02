@@ -9,7 +9,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 weights_path = os.path.abspath(dir_path + "/../../models/resnet18.npy")
 
 
-class Resnet18:
+class Model:
     def __init__(self, res18_npy_path=None):
         global data
 

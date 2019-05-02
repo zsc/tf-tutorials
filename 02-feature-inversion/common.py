@@ -24,7 +24,7 @@ class Config:
     save_interval = 10
     '''show the training loss every 10 epoch'''
     show_interval = 10
-    snapshot_interval = 2
+    snapshot_interval = 100
 
 
 

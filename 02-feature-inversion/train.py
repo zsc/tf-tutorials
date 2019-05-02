@@ -13,13 +13,13 @@ import argparse
 import tensorflow as tf
 
 from common import config
-import custom_vgg16_bn as vgg16
+import custom_resnet18 as resnet18
 import cv2
 import numpy as np
 
 '''use conv3_1 to generate representation'''
-FEATURE_LAYERS = ['conv3_1']
-image_shape = (1, 224, 224, 3)
+FEATURE_LAYERS = ['res4']
+image_shape = (1, 448, 448, 3)
 
 def get_feature_loss(noise,source):
     with tf.name_scope('get_feature_loss'):
@@ -27,6 +27,7 @@ def get_feature_loss(noise,source):
     return tf.reduce_mean(tf.convert_to_tensor(feature_loss))
 
 def get_l2_loss_for_layer(noise, source, layer):
+    #from IPython import embed; embed()
     noise_layer = getattr(noise,layer)
     source_layer = getattr(source, layer)
     l2_loss = tf.reduce_mean((source_layer-noise_layer) **2)
@@ -49,29 +50,32 @@ def main():
     noise = tf.Variable(tf.nn.sigmoid(pre_noise))
 
     '''load target image, notice that the pixel value has to be normalized to [0,1]'''
-    image = cv2.imread('../images/face.jpg')
+    image = cv2.imread('./images/car.jpg')
     image = cv2.resize(image, image_shape[1:3])
     image = image.reshape(image_shape)
     image = (image/255).astype('float32')
 
     '''get representation of the target image, which the noise image will approximate'''
-    with tf.name_scope('vgg_src'):
-        image_model = vgg16.Model()
+    with tf.name_scope('resnet_src'):
+        image_model = resnet18.Model()
         image_model.build(image)
 
     '''get representation of the noise image'''
-    with tf.name_scope('vgg_noise'):
-        noise_model = vgg16.Model()
+    with tf.name_scope('resnet_noise'):
+        noise_model = resnet18.Model()
         noise_model.build(noise)
 
     '''compute representation difference between noise feature and target feature'''
     with tf.name_scope('loss'):
-        loss = get_feature_loss(noise_model, image_model)
+        tv_loss = 0
+        tv_loss += tf.reduce_mean(tf.abs(noise[:, :-1, :] - noise[:, 1:, :]))
+        tv_loss += tf.reduce_mean(tf.abs(noise[:, :, :-1] - noise[:, :, 1:]))
+        loss = get_feature_loss(noise_model, image_model) + 0.3 * tv_loss
 
     total_loss = loss
 
     global_steps = tf.Variable(0, trainable=False)
-    lr = 1e-3
+    lr = 1e-2
 
     with tf.name_scope('update_image'):
         opt = tf.train.AdamOptimizer(lr)
