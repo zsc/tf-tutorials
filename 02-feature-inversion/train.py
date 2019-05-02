@@ -52,6 +52,8 @@ def main():
     '''load target image, notice that the pixel value has to be normalized to [0,1]'''
     image = cv2.imread('./images/car.jpg')
     image = cv2.resize(image, image_shape[1:3])
+    image = np.clip(image.astype('int32') + 30 * np.random.randn(*image.shape), 0, 255).astype('uint8')
+    cv2.imwrite('./images/car_noisy.jpg', image)
     image = image.reshape(image_shape)
     image = (image/255).astype('float32')
 
